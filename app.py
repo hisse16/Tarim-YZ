@@ -12,13 +12,28 @@ import hashlib
 # =====================================
 FIREBASE_URL = "https://ai-crop-adviser-default-rtdb.europe-west1.firebasedatabase.app/"
 
-if not firebase_admin._apps:
-    try:
-        cred = credentials.Certificate("serviceAccountKey.json")
-        firebase_admin.initialize_app(cred, {'databaseURL': FIREBASE_URL})
-    except:
-        pass
+def connect_to_firebase():
+    # Uygulama zaten başlatılmışsa tekrar başlatma
+    if not firebase_admin._apps:
+        try:
+            # 1. Streamlit Cloud Secrets Kontrolü
+            if "firebase" in st.secrets:
+                fb_conf = dict(st.secrets["firebase"])
+                # Anahtarın içindeki \n karakterlerini gerçek alt satıra çevir
+                fb_conf["private_key"] = fb_conf["private_key"].replace("\\n", "\n")
+                cred = credentials.Certificate(fb_conf)
+                firebase_admin.initialize_app(cred, {'databaseURL': FIREBASE_URL})
+            
+            # 2. Yerel Bilgisayar Dosya Kontrolü
+            else:
+                cred = credentials.Certificate("serviceAccountKey.json")
+                firebase_admin.initialize_app(cred, {'databaseURL': FIREBASE_URL})
+        except Exception as e:
+            st.error(f"❌ Firebase Bağlantı Hatası: {e}")
+            st.stop() # Hata varsa uygulamayı durdur ki kullanıcıyı yormasın
 
+# Bağlantıyı çalıştır
+connect_to_firebase()
 # =====================================
 # 2. YARDIMCI FONKSİYONLAR
 # =====================================
