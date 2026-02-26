@@ -13,18 +13,26 @@ import hashlib
 FIREBASE_URL = "https://ai-crop-adviser-default-rtdb.europe-west1.firebasedatabase.app/"
 
 def connect_to_firebase():
+    # Firebase zaten başlatılmışsa tekrar başlatma
     if not firebase_admin._apps:
         try:
-            # Eğer Streamlit Cloud'da secrets varsa
+            # 1️⃣ Streamlit Cloud Secrets kontrolü
             if "firebase" in st.secrets:
                 fb_conf = dict(st.secrets["firebase"])
+                # Cloud'daki \n karakterlerini gerçek alt satıra çevir
                 fb_conf["private_key"] = fb_conf["private_key"].replace("\\n", "\n")
                 cred = credentials.Certificate(fb_conf)
-                firebase_admin.initialize_app(cred, {'databaseURL': FIREBASE_URL})
-            else:
-                # Yerel kullanım
+            # 2️⃣ Yerel kullanım (serviceAccountKey.json)
+            elif os.path.exists("serviceAccountKey.json"):
                 cred = credentials.Certificate("serviceAccountKey.json")
-                firebase_admin.initialize_app(cred, {'databaseURL': FIREBASE_URL})
+            # 3️⃣ Hiçbir şey yoksa hata ver
+            else:
+                st.error("❌ Firebase Bağlantısı için secrets veya serviceAccountKey.json bulunamadı!")
+                st.stop()
+            
+            # Firebase başlat
+            firebase_admin.initialize_app(cred, {'databaseURL': FIREBASE_URL})
+
         except Exception as e:
             st.error(f"❌ Firebase Bağlantı Hatası: {e}")
             st.stop()
